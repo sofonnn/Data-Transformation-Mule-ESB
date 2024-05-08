@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:batch="http://www.mulesoft.org/schema/mule/batch"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/batch http://www.mulesoft.org/schema/mule/batch/current/mule-batch.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="a7530e2f-960a-476d-8956-51fa43d60992" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<flow name="batchFlow" doc:id="5d5a79af-172e-4030-a56c-728415e281f4" >
+		<http:listener doc:name="Listener" doc:id="476e11ae-fc95-4415-add1-da2db36d60e0" config-ref="HTTP_Listener_config" path="/batch"/>
+		<batch:job jobName="batchBatch_Job" doc:id="8b1e3f17-d4d8-4b6f-bb38-7de0885314be" maxFailedRecords="100">
+			<batch:process-records >
+				<batch:step name="Batch_Step" doc:id="f2732321-9db2-4315-b9f6-e2c0100dccaf" acceptPolicy="ALL">
+					<set-payload value="#[payload *2]" doc:name="Set Payload" doc:id="63c4f1dd-7090-4689-85ad-6e0d626d4914" />
+					<batch:aggregator doc:name="Batch Aggregator" doc:id="eba10ec8-b2b2-4d2c-b558-3b690e49c980" size="2">
+						<logger level="INFO" doc:name="Logger" doc:id="c04faa43-a03d-445f-bdd5-b92c62b6ca3d" message="#[payload]" />
+					</batch:aggregator>
+				</batch:step>
+				<batch:step name="Batch_Step1" doc:id="423c64ac-23c8-4c3b-b0c1-a2c397b3b7f1" acceptPolicy="ONLY_FAILURES">
+					<ee:transform doc:name="Transform Message" doc:id="e79006b7-629c-4171-9ff2-a2aa3938819b" >
+						<ee:message >
+							<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload ++ "failed"]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+					<batch:aggregator doc:name="Batch Aggregator" doc:id="b6e7869f-a973-4226-a4d4-ec98b60f48e0" size="2">
+						<logger level="INFO" doc:name="Logger" doc:id="e2e72daf-74e6-41c0-9d51-5aaad0847676" message="#[payload]"/>
+					</batch:aggregator>
+				</batch:step>
+			</batch:process-records>
+			<batch:on-complete >
+				<logger level="INFO" doc:name="Logger" doc:id="bc2e7999-9ed7-46b2-926f-2ce545057974" message="#[payload]"/>
+				<ee:transform doc:name="Transform Message" doc:id="485fb530-0ccd-4293-b905-d2446daef882" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</batch:on-complete>
+		</batch:job>
+	</flow>
+</mule>
